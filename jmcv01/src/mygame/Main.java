@@ -139,8 +139,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
             channel = control.createChannel();
             channel.setAnim("Idle");
             music = new AudioNode(assetManager, "Sounds/RichardWagnerRideOfTheValkyries.ogg", true);
-            music.setLooping(true);
-            audioRenderer.setEnvironment(new Environment(Environment.Garage));
 
         } catch (FrameGrabber.Exception ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
