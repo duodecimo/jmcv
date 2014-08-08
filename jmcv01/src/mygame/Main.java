@@ -5,6 +5,8 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.animation.LoopMode;
 import com.jme3.app.SimpleApplication;
+import com.jme3.audio.AudioNode;
+import com.jme3.audio.Environment;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -69,6 +71,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
     private AnimChannel channel;
     private AnimControl control;
     Node player;
+    AudioNode music;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -135,6 +138,9 @@ public class Main extends SimpleApplication implements AnimEventListener {
             control.addListener(this);
             channel = control.createChannel();
             channel.setAnim("Idle");
+            music = new AudioNode(assetManager, "Sounds/RichardWagnerRideOfTheValkyries.ogg", true);
+            music.setLooping(true);
+            audioRenderer.setEnvironment(new Environment(Environment.Garage));
 
         } catch (FrameGrabber.Exception ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
@@ -154,12 +160,14 @@ public class Main extends SimpleApplication implements AnimEventListener {
                     channel.setAnim("Dance", 1.0f);
                     channel.setLoopMode(LoopMode.Loop);
                     channel.setSpeed(1f);
+                    music.play();
                 }
             } else {
                 if (!channel.getAnimationName().equals("Idle")) {
                     channel.setAnim("Idle", 0.5f);
                     channel.setLoopMode(LoopMode.Loop);
                     channel.setSpeed(1f);
+                    music.pause();
                 }
             }
         }
