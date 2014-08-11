@@ -6,7 +6,6 @@ import com.jme3.animation.AnimEventListener;
 import com.jme3.animation.LoopMode;
 import com.jme3.app.SimpleApplication;
 import com.jme3.audio.AudioNode;
-import com.jme3.audio.Environment;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -24,54 +23,25 @@ import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
-import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.duo.jmcv.Jmcv;
+import org.duo.jmcv.JmcvWebcamDetectionException;
 
-import static org.bytedeco.javacpp.helper.opencv_objdetect.cvHaarDetectObjects;
-import static org.bytedeco.javacpp.opencv_core.CV_AA;
-import org.bytedeco.javacpp.opencv_core.CvMemStorage;
-import org.bytedeco.javacpp.opencv_core.CvRect;
-import org.bytedeco.javacpp.opencv_core.CvScalar;
-import org.bytedeco.javacpp.opencv_core.CvSeq;
-import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
-import org.bytedeco.javacpp.opencv_core.IplImage;
-import static org.bytedeco.javacpp.opencv_core.cvClearMemStorage;
-import static org.bytedeco.javacpp.opencv_core.cvGetSeqElem;
-import static org.bytedeco.javacpp.opencv_core.cvLoad;
-import static org.bytedeco.javacpp.opencv_core.cvPoint;
-import static org.bytedeco.javacpp.opencv_core.cvRectangle;
-import static org.bytedeco.javacpp.opencv_imgproc.CV_BGR2GRAY;
-import static org.bytedeco.javacpp.opencv_imgproc.cvCvtColor;
-import static org.bytedeco.javacpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNING;
-import org.bytedeco.javacpp.opencv_objdetect.CvHaarClassifierCascade;
-import org.bytedeco.javacv.FrameGrabber;
+
 /**
  * test
  * @author normenhansen
  */
 public class Main extends SimpleApplication implements AnimEventListener {
-    IplImage iplImage; // we can get a BufferedImage here
-    IplImage grayImage;
-    CvRect cvRect; // we can get x,y,w,h (rectangle definition) where eyes were detected
-    Dimension detectionPoint;
-    Dimension detectionArea;
     Geometry backgroundGeom;
-    CvMemStorage storage;
-    FrameGrabber grabber;
-    final String CASCADE_EYEPAIR_BIG = getClass().getClassLoader().
-            getResource("resources/cascades/haarcascade_mcs_eyepair_big.xml").getPath();
-    final String CASCADE_SMILE = getClass().getClassLoader().
-            getResource("resources/cascades/haarcascade_smile.xml").getPath();
-    final String CASCADE_FRONTALFACE_ALT2 = getClass().getClassLoader().
-            getResource("resources/cascades/haarcascade_frontalface_alt2.xml").getPath();
-    CvHaarClassifierCascade classifier;
     Material backgroundMat;
     private AnimChannel channel;
     private AnimControl control;
     Node player;
     AudioNode music;
+    Jmcv jmcv;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -85,75 +55,51 @@ public class Main extends SimpleApplication implements AnimEventListener {
 
     @Override
     public void simpleInitApp() {
+        jmcv = new Jmcv();
         flyCam.setEnabled(false);
-        try {
-            classifier = new CvHaarClassifierCascade(cvLoad(CASCADE_FRONTALFACE_ALT2));
-            if (classifier.isNull()) {
-                System.err.println("Error loading classifier file \"" + CASCADE_FRONTALFACE_ALT2 + "\".");
-                System.exit(1);
-            }
-            storage = CvMemStorage.create();
-            try {
-                // try camera 0
-                grabber = FrameGrabber.createDefault(0);
-                grabber.start();
-                iplImage = grabber.grab();
-            } catch (FrameGrabber.Exception exception) {
-                // if camera 0 fails, try camera 1
-                grabber = FrameGrabber.createDefault(1);
-                grabber.start();
-                iplImage = grabber.grab();
-            }
-            grayImage    = IplImage.create(iplImage.width(), iplImage.height(), IPL_DEPTH_8U, 1);
-            detectionArea = new Dimension();
-            detectionPoint = new Dimension();
-            backgroundMat = new Material(assetManager, "MatDefs/Unshaded.j3md");
-            Texture backgroundTex = assetManager.loadTexture("Interface/Logo/Monkey.png");
-            backgroundMat.setTexture("ColorMap", backgroundTex);
-            float w = this.getContext().getSettings().getWidth();
-            float h = this.getContext().getSettings().getHeight();
-            float ratio = w / h;
-            cam.setLocation(Vector3f.ZERO.add(new Vector3f(0.0f, 0.0f, 1.1f)));//Move the Camera back just a bit.
+        backgroundMat = new Material(assetManager, "MatDefs/Unshaded.j3md");
+        Texture backgroundTex = assetManager.loadTexture("Interface/Logo/Monkey.png");
+        backgroundMat.setTexture("ColorMap", backgroundTex);
+        float w = this.getContext().getSettings().getWidth();
+        float h = this.getContext().getSettings().getHeight();
+        float ratio = w / h;
+        cam.setLocation(Vector3f.ZERO.add(new Vector3f(0.0f, 0.0f, 1.1f)));//Move the Camera back just a bit.
 
-            float width = 1 * ratio;
-            float height = 1;
+        float width = 1 * ratio;
+        float height = 1;
 
-            Quad fsq = new Quad(width, height);
-            backgroundGeom = new Geometry("Background", fsq);
-            backgroundGeom.setQueueBucket(Bucket.Sky);
-            backgroundGeom.setCullHint(CullHint.Never);
-            backgroundGeom.setMaterial(backgroundMat);
-            backgroundGeom.setLocalTranslation(-(width / 2), -(height / 2), 0);  //Need to Divide by two because the quad origin is bottom left
-            rootNode.attachChild(backgroundGeom);
-            initKeys();
-            rootNode.addLight(new AmbientLight());
-            DirectionalLight dl = new DirectionalLight();
-            dl.setDirection(new Vector3f(-0.1f, -1f, -1).normalizeLocal());
-            rootNode.addLight(dl);
-            player = (Node) assetManager.loadModel("Models/gilb.j3o");
-            player.setLocalScale(0.2f);
-            player.setLocalTranslation(new Vector3f(0.0f, -0.3f, -0.2f));
-            rootNode.attachChild(player);
-            control = player.getControl(AnimControl.class);
-            control.addListener(this);
-            channel = control.createChannel();
-            channel.setAnim("Idle");
-            music = new AudioNode(assetManager, "Sounds/RichardWagnerRideOfTheValkyries.ogg", true);
-
-        } catch (FrameGrabber.Exception ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        Quad fsq = new Quad(width, height);
+        backgroundGeom = new Geometry("Background", fsq);
+        backgroundGeom.setQueueBucket(Bucket.Sky);
+        backgroundGeom.setCullHint(CullHint.Never);
+        backgroundGeom.setMaterial(backgroundMat);
+        backgroundGeom.setLocalTranslation(-(width / 2), -(height / 2), 0);  //Need to Divide by two because the quad origin is bottom left
+        rootNode.attachChild(backgroundGeom);
+        initKeys();
+        rootNode.addLight(new AmbientLight());
+        DirectionalLight dl = new DirectionalLight();
+        dl.setDirection(new Vector3f(-0.1f, -1f, -1).normalizeLocal());
+        rootNode.addLight(dl);
+        player = (Node) assetManager.loadModel("Models/gilb.j3o");
+        player.setLocalScale(0.2f);
+        player.setLocalTranslation(new Vector3f(0.0f, -0.3f, -0.2f));
+        rootNode.attachChild(player);
+        control = player.getControl(AnimControl.class);
+        control.addListener(this);
+        channel = control.createChannel();
+        channel.setAnim("Idle");
+        music = new AudioNode(assetManager, "Sounds/RichardWagnerRideOfTheValkyries.ogg", true);
     }
 
     @Override
     public void simpleUpdate(float tpf) {
         try {
-            backgroundMat.setTexture("ColorMap", awtImageToTexture(WebcamDetection()));
-        } catch (FrameGrabber.Exception ex) {
+            backgroundMat.setTexture("ColorMap", awtImageToTexture(jmcv.WebcamDetection()));
+        } catch (JmcvWebcamDetectionException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
-        if (cvRect != null) {
-            if (detectionPoint.width < detectionArea.width/2) {
+        if (jmcv.isDetectionOk()) {
+            if (jmcv.getDetectionPoint().width < jmcv.getDetectionArea().width/2) {
                 if (!channel.getAnimationName().equals("Dance")) {
                     channel.setAnim("Dance", 1.0f);
                     channel.setLoopMode(LoopMode.Loop);
@@ -174,30 +120,6 @@ public class Main extends SimpleApplication implements AnimEventListener {
     @Override
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
-    }
-
-    public BufferedImage WebcamDetection() throws FrameGrabber.Exception {
-        if ((iplImage = grabber.grab()) != null) {
-            cvClearMemStorage(storage);
-            // In order to detect something a grayscale image is needed.
-            cvCvtColor(iplImage, grayImage, CV_BGR2GRAY);
-            CvSeq detectedObject = cvHaarDetectObjects(grayImage, classifier, storage,
-                    1.1, 3, CV_HAAR_DO_CANNY_PRUNING);
-            int total = detectedObject.total();
-            for (int i = 0; i < total; i++) {
-                cvRect = new CvRect(cvGetSeqElem(detectedObject, i));
-                int x = cvRect.x(), y = cvRect.y(), w = cvRect.width(), h = cvRect.height();
-                // reduce the rectangle
-                x+=w/4;
-                y+=h/4;
-                w=w/2;
-                h=h/2;
-                cvRectangle(iplImage, cvPoint(x, y), cvPoint(x + w, y + h), CvScalar.MAGENTA, 1, CV_AA, 0);
-                detectionArea.setSize(iplImage.width(), iplImage.height());
-                detectionPoint.setSize(x + w/2, y + h/2);
-            }
-        }
-        return iplImage.getBufferedImage();
     }
 
     public static Texture awtImageToTexture(final BufferedImage img) {
