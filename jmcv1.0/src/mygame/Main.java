@@ -87,7 +87,9 @@ public class Main extends SimpleApplication implements AnimEventListener {
         control = player.getControl(AnimControl.class);
         control.addListener(this);
         channel = control.createChannel();
-        channel.setAnim("Idle");
+        channel.setAnim("Idle", 0.5f);
+        channel.setLoopMode(LoopMode.Loop);
+        channel.setSpeed(0.4f);
         music = new AudioNode(assetManager, "Sounds/RichardWagnerRideOfTheValkyries.ogg", true);
     }
 
@@ -99,16 +101,23 @@ public class Main extends SimpleApplication implements AnimEventListener {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
         if (jmcv.isDetectionOk()) {
-            if (jmcv.getDetectionPoint().width < jmcv.getDetectionArea().width/2) {
+            if (jmcv.getDetectionPoint().width < jmcv.getDetectionArea().width/3) {
                 if (!channel.getAnimationName().equals("Dance")) {
                     channel.setAnim("Dance", 1.0f);
                     channel.setLoopMode(LoopMode.Loop);
                     channel.setSpeed(1f);
                     music.play();
                 }
-            } else {
+            } else if (jmcv.getDetectionPoint().width < 2* jmcv.getDetectionArea().width/3) {
                 if (!channel.getAnimationName().equals("Idle")) {
                     channel.setAnim("Idle", 0.5f);
+                    channel.setLoopMode(LoopMode.Loop);
+                    channel.setSpeed(0.4f);
+                    music.pause();
+                }
+            } else {
+                if (!channel.getAnimationName().equals("Negate")) {
+                    channel.setAnim("Negate", 1.0f);
                     channel.setLoopMode(LoopMode.Loop);
                     channel.setSpeed(1f);
                     music.pause();
