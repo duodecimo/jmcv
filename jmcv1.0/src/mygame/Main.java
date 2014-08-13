@@ -12,6 +12,7 @@ import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.queue.RenderQueue.Bucket;
@@ -24,6 +25,7 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import java.awt.image.BufferedImage;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.duo.jmcv.Jmcv;
@@ -42,6 +44,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
     Node player;
     AudioNode music;
     Jmcv jmcv;
+    Random random;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -139,6 +142,7 @@ public class Main extends SimpleApplication implements AnimEventListener {
     }
 
     public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
+        rotatePlayerRandomly();
         if (animName.equals("Dance")) {
             channel.setAnim("Idle", 0.50f);
             channel.setLoopMode(LoopMode.DontLoop);
@@ -146,8 +150,9 @@ public class Main extends SimpleApplication implements AnimEventListener {
         }
     }
 
+    @Override
     public void onAnimChange(AnimControl control, AnimChannel channel, String animName) {
-        // unused
+        rotatePlayerRandomly();
     }
 
     private void initKeys() {
@@ -165,4 +170,29 @@ public class Main extends SimpleApplication implements AnimEventListener {
             }
         }
     };
+
+    private void rotatePlayerRandomly() {
+        // rotate char a bit
+        if(random==null) {
+            random = new Random();
+        }
+        float[] angles = new float[3];
+        player.getLocalRotation().toAngles(angles);
+        int angleIndex = random.nextInt(3);
+        float rotateAngle;
+        // choose between -45, 0, 45 (facing 45 degrees to the left, 
+        // front, 45 degrees to the right
+        switch(angleIndex) {
+            case 0:
+                rotateAngle = -45.0f;
+                break;
+            case 1:
+                rotateAngle = 0.0f;
+                break;
+            default:
+                rotateAngle = 45.0f;
+        }
+        angles[1] = rotateAngle;
+        player.setLocalRotation(new Quaternion(angles));
+    }
 }
