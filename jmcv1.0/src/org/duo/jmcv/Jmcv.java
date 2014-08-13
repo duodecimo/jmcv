@@ -40,9 +40,9 @@ public class Jmcv {
             classifier = new CvHaarClassifierCascade(cvLoad(getClass().getClassLoader().
             getResource(CascadeName.CASCADE_FRONTALFACE_ALT2).getPath()));
             if (classifier.isNull()) {
-                System.err.println("Error loading classifier file \"" + 
+                System.err.println("Error loading classifier file: " + 
                         getClass().getClassLoader().
-            getResource(CascadeName.CASCADE_FRONTALFACE_ALT2).getPath() + "\".");
+            getResource(CascadeName.CASCADE_FRONTALFACE_ALT2).getPath());
                 System.exit(1);
             }
             storage = CvMemStorage.create();
