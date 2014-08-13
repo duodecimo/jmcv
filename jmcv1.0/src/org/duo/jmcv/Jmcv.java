@@ -8,14 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.bytedeco.javacpp.helper.opencv_objdetect.cvHaarDetectObjects;
-import static org.bytedeco.javacpp.opencv_core.CV_AA;
-import org.bytedeco.javacpp.opencv_core.CvMemStorage;
-import org.bytedeco.javacpp.opencv_core.CvRect;
-import org.bytedeco.javacpp.opencv_core.CvScalar;
-import org.bytedeco.javacpp.opencv_core.CvSeq;
-import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
-import org.bytedeco.javacpp.opencv_core.IplImage;
-import static org.bytedeco.javacpp.opencv_core.cvClearMemStorage;
+import static org.bytedeco.javacpp.opencv_core.*;
 import static org.bytedeco.javacpp.opencv_core.cvGetSeqElem;
 import static org.bytedeco.javacpp.opencv_core.cvLoad;
 import static org.bytedeco.javacpp.opencv_core.cvPoint;
@@ -26,7 +19,6 @@ import static org.bytedeco.javacpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNING;
 import org.bytedeco.javacpp.opencv_objdetect.CvHaarClassifierCascade;
 import org.bytedeco.javacv.FrameGrabber;
 import org.duo.jmcv.utilities.CascadeName;
-
 /**
  * test
  *
@@ -91,11 +83,16 @@ public class Jmcv {
                     y += h / 4;
                     w = w / 2;
                     h = h / 2;
+                    // draw a rectangle onto the face
                     cvRectangle(iplImage, cvPoint(x, y), cvPoint(x + w, y + h), CvScalar.MAGENTA, 1, CV_AA, 0);
                     detectionArea.setSize(iplImage.width(), iplImage.height());
                     detectionPoint.setSize(x + w / 2, y + h / 2);
                 }
             }
+            // dived image in three vertical sections
+            int xLeft = iplImage.width()/3, xRight = 2*iplImage.width()/3;
+            cvLine(iplImage, cvPoint(xLeft, 0), cvPoint(xLeft, iplImage.height()), CvScalar.WHITE);
+            cvLine(iplImage, cvPoint(xRight, 0), cvPoint(xRight, iplImage.height()), CvScalar.WHITE);
             bufferedImage = iplImage.getBufferedImage();
             // flip the image to make background behave like a mirror
             // to players face
